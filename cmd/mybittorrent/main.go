@@ -12,6 +12,15 @@ import (
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
 var _ = json.Marshal
 
+type torrentInfo struct {
+	TrackerURL string      `json:"announce"`
+	Info       trackerInfo `json:"info"`
+}
+
+type trackerInfo struct {
+	Length int `json:"length"`
+}
+
 // Example:
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
@@ -130,11 +139,13 @@ func decodeDict(bencodedString string, start int) (map[string]interface{}, int, 
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		fmt.Println("invalid arguments provided, there should be three arguments")
+		return
+	}
 	command := os.Args[1]
 
 	if command == "decode" {
-		// Uncomment this block to pass the first stage
-		//
 		bencodedValue := os.Args[2]
 
 		decoded, _, err := decodeBencode(bencodedValue, 0)
@@ -145,6 +156,28 @@ func main() {
 
 		jsonOutput, _ := json.Marshal(decoded)
 		fmt.Println(string(jsonOutput))
+	} else if command == "info" {
+		fileName := os.Args[2]
+
+		b, err := os.ReadFile(fileName)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		decoded, _, err := decodeBencode(string(b), 0)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		jsonOutput, _ := json.Marshal(decoded)
+		var ti torrentInfo
+		err = json.Unmarshal(jsonOutput, &ti)
+		if err != nil {
+			fmt.Println("cannot decode torrent info", err)
+		}
+		fmt.Println("Tracker URL:", ti.TrackerURL)
+		fmt.Println("Length:", ti.Info.Length)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
