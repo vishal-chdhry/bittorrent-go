@@ -16,11 +16,11 @@ var _ = json.Marshal
 // Example:
 // - 5:hello -> hello
 // - 10:hello12345 -> hello12345
-func decodeBencode(bencodedString string) (interface{}, error) {
+func decodeBencode(bencodedString string) (interface{}, string, error) {
 	if unicode.IsDigit(rune(bencodedString[0])) {
 		var firstColonIndex int
 
-		for i := 0; i < len(bencodedString); i++ {
+		for i := range bencodedString {
 			if bencodedString[i] == ':' {
 				firstColonIndex = i
 				break
@@ -31,19 +31,40 @@ func decodeBencode(bencodedString string) (interface{}, error) {
 
 		length, err := strconv.Atoi(lengthStr)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 
-		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], nil
+		return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], bencodedString[firstColonIndex+1+length:], nil
 	} else if bencodedString[0] == 'i' {
-		number, err := strconv.Atoi(strings.TrimSuffix(bencodedString, "e")[1:])
-		if err != nil {
-			return -1, err
+		endOfInt := -1
+		for i := range bencodedString {
+			if bencodedString[i] == 'e' {
+				endOfInt = i
+				break
+			}
 		}
-
-		return number, nil
+		if endOfInt == -1 {
+			return -1, "", fmt.Errorf("invalid integer format")
+		}
+		num, err := strconv.Atoi(bencodedString[1:endOfInt])
+		if err != nil {
+			return -1, "", err
+		}
+		return num, bencodedString[endOfInt+1:], nil
+	} else if bencodedString[0] == 'l' {
+		bencodedString = bencodedString[1:]
+		list := []interface{}{}
+		for bencodedString[0] != 'e' {
+			v, rest, err := decodeBencode(bencodedString)
+			if err != nil {
+				return -1, "", err
+			}
+			list = append(list, v)
+			bencodedString = rest
+		}
+		return list, strings.TrimPrefix(bencodedString, "e"), nil
 	} else {
-		return "", fmt.Errorf("Only strings are supported at the moment")
+		return "", "", fmt.Errorf("Only strings are supported at the moment: %s", bencodedString)
 	}
 
 }
@@ -56,7 +77,7 @@ func main() {
 		//
 		bencodedValue := os.Args[2]
 
-		decoded, err := decodeBencode(bencodedValue)
+		decoded, _, err := decodeBencode(bencodedValue)
 		if err != nil {
 			fmt.Println(err)
 			return
