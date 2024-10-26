@@ -195,7 +195,8 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-
+		jsonOutput, _ := json.Marshal(decoded)
+		fmt.Println(string(jsonOutput))
 		infoMap := decoded.(map[string]interface{})["info"]
 		buf := bytes.Buffer{}
 		be := bencoder{&buf}
