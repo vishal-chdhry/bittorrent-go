@@ -1,141 +1,163 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strconv"
+	"unicode"
 	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
 var _ = json.Marshal
 
-type torrentInfo struct {
-	TrackerURL string      `json:"announce"`
-	Info       trackerInfo `json:"info"`
+type bdecoder struct {
+	*bufio.Reader
 }
 
-type trackerInfo struct {
-	Length int `json:"length"`
-}
-
-// Example:
-// - 5:hello -> hello
-// - 10:hello12345 -> hello12345
-func decodeBencode(bencodedString string, start int) (interface{}, int, error) {
-	if start == len(bencodedString) {
-		return nil, -1, io.ErrUnexpectedEOF
+func (b *bdecoder) decode() (interface{}, error) {
+	c, err := b.Peek(1)
+	if err != nil {
+		return nil, err
 	}
-	c := bencodedString[start]
+	first := c[0]
 	switch {
-	case c == 'i':
-		val, next, err := decodeInt(bencodedString, start)
-		if err != nil {
-			return -1, -1, err
-		}
-		return val, next, nil
-	case c == 'l':
-		list, next, err := decodeList(bencodedString, start)
-		if err != nil {
-			return list, -1, err
-		}
-		return list, next, nil
-	case c == 'd':
-		dict, next, err := decodeDict(bencodedString, start)
-		if err != nil {
-			return dict, -1, err
-		}
-		return dict, next, nil
-	case c >= '0' && c <= '9':
-		str, next, err := decodeString(bencodedString, start)
-		if err != nil {
-			return "", -1, err
-		}
-		return str, next, nil
+	case unicode.IsDigit(rune(first)):
+		return b.decodeString()
+	case first == 'i':
+		return b.decodeInt()
+	case first == 'l':
+		return b.decodeList()
+	case first == 'd':
+		return b.decodeDict()
 	default:
-		return nil, -1, fmt.Errorf("unsupported type provided: %s", bencodedString)
+		return nil, fmt.Errorf("unsupported type in string or invalid format")
 	}
 }
 
-func decodeString(bencodedString string, start int) (string, int, error) {
-	firstColonIndex := -1
+func (b *bdecoder) decodeString() (string, error) {
+	num, err := b.ReadString(':')
+	if err != nil {
+		return "", err
+	}
 
-	for i := start; i < len(bencodedString); i++ {
-		if bencodedString[i] == ':' {
-			firstColonIndex = i
+	length, err := strconv.Atoi(num[:len(num)-1])
+	if err != nil {
+		return "", err
+	}
+	str := make([]byte, length)
+	n, err := b.Read(str)
+	if err != nil && err != io.EOF {
+		return "", err
+	}
+
+	if n != length {
+		return "", fmt.Errorf("malformed string")
+	}
+
+	return string(str), nil
+}
+
+func (b *bdecoder) decodeInt() (int, error) {
+	token, err := b.ReadString('e')
+	if err != nil {
+		return -1, err
+	}
+
+	return strconv.Atoi(token[1 : len(token)-1])
+}
+
+func (b *bdecoder) decodeList() ([]interface{}, error) {
+	b.ReadByte()
+	list := make([]interface{}, 0)
+	for {
+		if c, err := b.Peek(1); err != nil {
+			return list, err
+		} else if c[0] == 'e' {
+			b.ReadByte()
 			break
 		}
-	}
-	if firstColonIndex == -1 {
-		return "", -1, fmt.Errorf("invalid string format, %s", bencodedString[start:])
-	}
 
-	lengthStr := bencodedString[start:firstColonIndex]
-	length, err := strconv.Atoi(lengthStr)
-	if err != nil {
-		return "", -1, err
+		if val, err := b.decode(); err != nil {
+			return list, err
+		} else {
+			list = append(list, val)
+		}
 	}
-
-	return bencodedString[firstColonIndex+1 : firstColonIndex+1+length], firstColonIndex + 1 + length, nil
+	return list, nil
 }
 
-func decodeInt(bencodedString string, start int) (int, int, error) {
-	endOfInt := -1
-	for i := start; i < len(bencodedString); i++ {
-		if bencodedString[i] == 'e' {
-			endOfInt = i
+func (b *bdecoder) decodeDict() (map[string]interface{}, error) {
+	b.ReadByte()
+	dict := make(map[string]interface{})
+	for {
+		if c, err := b.Peek(1); err != nil {
+			return dict, err
+		} else if c[0] == 'e' {
+			b.ReadByte()
 			break
 		}
+
+		var key string
+		var val interface{}
+		var err error
+		if key, err = b.decodeString(); err != nil {
+			return dict, err
+		}
+		if val, err = b.decode(); err != nil {
+			return dict, err
+		}
+
+		dict[key] = val
 	}
-	if endOfInt == -1 {
-		return -1, -1, fmt.Errorf("invalid integer format, %s", bencodedString[start:])
-	}
-	num, err := strconv.Atoi(bencodedString[start+1 : endOfInt])
-	if err != nil {
-		return -1, -1, err
-	}
-	return num, endOfInt + 1, nil
+	return dict, nil
 }
 
-func decodeList(bencodedString string, start int) ([]interface{}, int, error) {
-	list := []interface{}{}
-	beg := start + 1
-	for bencodedString[beg] != 'e' {
-		v, next, err := decodeBencode(bencodedString, beg)
-		if err != nil {
-			return list, -1, err
-		}
-		list = append(list, v)
-		beg = next
-	}
-	return list, beg + 1, nil
+type bencoder struct {
+	*bytes.Buffer
 }
 
-func decodeDict(bencodedString string, start int) (map[string]interface{}, int, error) {
-	dict := map[string]interface{}{}
-	beg := start + 1
-	for bencodedString[beg] != 'e' {
-		key, next, err := decodeString(bencodedString, beg)
-		if err != nil {
-			return dict, -1, err
+func (b *bencoder) encode(val interface{}) error {
+	switch v := val.(type) {
+	case string:
+		b.WriteString(fmt.Sprintf("%d:%s", len(v), v))
+		return nil
+	case int:
+		b.WriteString(fmt.Sprintf("i%de", v))
+		return nil
+	case []interface{}:
+		b.WriteByte('l')
+		for _, el := range v {
+			if err := b.encode(el); err != nil {
+				return err
+			}
 		}
-		beg = next
-		value, next, err := decodeBencode(bencodedString, beg)
-		if err != nil {
-			return dict, -1, err
+		b.WriteByte('e')
+		return nil
+	case map[string]interface{}:
+		b.WriteByte('d')
+		m := make([]string, 0, len(v))
+		for k := range v {
+			m = append(m, k)
 		}
-		beg = next
-		dict[key] = value
+
+		sort.Strings(m)
+
+		for _, key := range m {
+			b.encode(key)
+			b.encode(v[key])
+		}
+		b.WriteByte('e')
+		return nil
+	default:
+		return fmt.Errorf("unsupported type in encoder")
 	}
-
-	// sort the dictionary
-	// keys := make([]string, 0, len(dict))
-	// sort.Strings(keys)
-	// sortedDict :=
-
-	return dict, beg + 1, nil
 }
 
 func main() {
@@ -148,7 +170,9 @@ func main() {
 	if command == "decode" {
 		bencodedValue := os.Args[2]
 
-		decoded, _, err := decodeBencode(bencodedValue, 0)
+		buf := bytes.NewBuffer([]byte(bencodedValue))
+		bd := bdecoder{bufio.NewReader(buf)}
+		decoded, err := bd.decode()
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -159,25 +183,36 @@ func main() {
 	} else if command == "info" {
 		fileName := os.Args[2]
 
-		b, err := os.ReadFile(fileName)
+		f, err := os.Open(fileName)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		decoded, _, err := decodeBencode(string(b), 0)
+		bd := bdecoder{bufio.NewReader(f)}
+		decoded, err := bd.decode()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		jsonOutput, _ := json.Marshal(decoded)
-		var ti torrentInfo
-		err = json.Unmarshal(jsonOutput, &ti)
+
+		infoMap := decoded.(map[string]interface{})["info"]
+		buf := bytes.Buffer{}
+		be := bencoder{&buf}
+		err = be.encode(infoMap)
 		if err != nil {
-			fmt.Println("cannot decode torrent info", err)
+			fmt.Println(err)
+			return
 		}
-		fmt.Println("Tracker URL:", ti.TrackerURL)
-		fmt.Println("Length:", ti.Info.Length)
+		fmt.Println(string(be.Bytes()))
+		h := sha1.New()
+		io.Copy(h, &buf)
+
+		sum := h.Sum(nil)
+
+		fmt.Println("Tracker URL:", decoded.(map[string]interface{})["announce"].(string))
+		fmt.Println("Length:", decoded.(map[string]interface{})["info"].(map[string]interface{})["length"].(int))
+		fmt.Printf("Info Hash: %x", sum)
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
