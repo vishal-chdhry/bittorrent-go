@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -208,11 +209,11 @@ func main() {
 
 		sum := h.Sum(nil)
 
-		fmt.Println("Tracker URL:", decoded.(map[string]interface{})["announce"].(string))
-		fmt.Println("Length:", decoded.(map[string]interface{})["info"].(map[string]interface{})["length"].(int))
-		fmt.Printf("Info Hash: %x\n", sum)
-		fmt.Printf("Piece Length: %d\n", infoMap["piece length"])
-		fmt.Printf("Piece Hashes:\n")
+		url := decoded.(map[string]interface{})["announce"].(string)
+		length := infoMap["length"].(int)
+		infoHash := hex.EncodeToString(sum)
+		pieceLength := infoMap["piece length"].(int)
+		pieces := make([]string, 0)
 		b := bytes.NewBuffer([]byte(infoMap["pieces"].(string)))
 		for b.Len() != 0 {
 			hash := make([]byte, 20)
@@ -221,8 +222,18 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-			fmt.Printf("%x\n", hash)
+			pieces = append(pieces, hex.EncodeToString(hash))
 		}
+
+		fmt.Println("Tracker URL:", url)
+		fmt.Println("Length:", length)
+		fmt.Printf("Info Hash: %s\n", infoHash)
+		fmt.Printf("Piece Length: %d\n", pieceLength)
+		fmt.Printf("Piece Hashes:\n")
+		for _, v := range pieces {
+			fmt.Println(v)
+		}
+
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
