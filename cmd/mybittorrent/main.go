@@ -3,16 +3,19 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/rand"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strconv"
 	"unicode"
-	// bencode "github.com/jackpal/bencode-go" // Available if you need it!
 )
 
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
@@ -181,7 +184,7 @@ func main() {
 
 		jsonOutput, _ := json.Marshal(decoded)
 		fmt.Println(string(jsonOutput))
-	} else if command == "info" {
+	} else if command == "info" || command == "peers" {
 		fileName := os.Args[2]
 
 		f, err := os.Open(fileName)
@@ -209,7 +212,7 @@ func main() {
 
 		sum := h.Sum(nil)
 
-		url := decoded.(map[string]interface{})["announce"].(string)
+		trackerUrl := decoded.(map[string]interface{})["announce"].(string)
 		length := infoMap["length"].(int)
 		infoHash := hex.EncodeToString(sum)
 		pieceLength := infoMap["piece length"].(int)
@@ -225,17 +228,58 @@ func main() {
 			pieces = append(pieces, hex.EncodeToString(hash))
 		}
 
-		fmt.Println("Tracker URL:", url)
-		fmt.Println("Length:", length)
-		fmt.Printf("Info Hash: %s\n", infoHash)
-		fmt.Printf("Piece Length: %d\n", pieceLength)
-		fmt.Printf("Piece Hashes:\n")
-		for _, v := range pieces {
-			fmt.Println(v)
+		if command == "info" {
+			fmt.Println("Tracker URL:", trackerUrl)
+			fmt.Println("Length:", length)
+			fmt.Printf("Info Hash: %s\n", infoHash)
+			fmt.Printf("Piece Length: %d\n", pieceLength)
+			fmt.Printf("Piece Hashes:\n")
+			for _, v := range pieces {
+				fmt.Println(v)
+			}
+		} else if command == "peers" {
+			b := make([]byte, 10)
+			rand.Read(b)
+			peerId := hex.EncodeToString(b)
+			val := url.Values{}
+			val.Add("peer_id", peerId)
+			val.Add("port", "6881")
+			val.Add("uploaded", "0")
+			val.Add("downloaded", "0")
+			val.Add("left", fmt.Sprint(length))
+			val.Add("compact", "1")
+			u := trackerUrl + "?" + val.Encode() + "&info_hash=" + url.QueryEscape(string(sum))
+			resp, err := http.Get(u)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			body, _ := io.ReadAll(resp.Body)
+			buf := bytes.NewBuffer([]byte(body))
+			bd := bdecoder{bufio.NewReader(buf)}
+			decoded, err := bd.decode()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			peers := decoded.(map[string]interface{})["peers"].(string)
+			peeripv4s := parsePeerIPV4s([]byte(peers))
+			for _, v := range peeripv4s {
+				fmt.Println(v)
+			}
 		}
 
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
 	}
+}
+
+func parsePeerIPV4s(ips []byte) []string {
+	ipAddrs := make([]string, 0, len(ips)/6)
+	for i := 0; i < len(ips); i += 6 {
+		ipAddrs = append(ipAddrs, fmt.Sprintf("%d.%d.%d.%d:%d", ips[i], ips[i+1], ips[i+2], ips[i+3], binary.BigEndian.Uint16(ips[i+4:i+6])))
+	}
+	return ipAddrs
 }
