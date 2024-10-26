@@ -195,9 +195,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		jsonOutput, _ := json.Marshal(decoded)
-		fmt.Println(string(jsonOutput))
-		infoMap := decoded.(map[string]interface{})["info"]
+		infoMap := decoded.(map[string]interface{})["info"].(map[string]interface{})
 		buf := bytes.Buffer{}
 		be := bencoder{&buf}
 		err = be.encode(infoMap)
@@ -205,7 +203,6 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println(string(be.Bytes()))
 		h := sha1.New()
 		io.Copy(h, &buf)
 
@@ -213,7 +210,19 @@ func main() {
 
 		fmt.Println("Tracker URL:", decoded.(map[string]interface{})["announce"].(string))
 		fmt.Println("Length:", decoded.(map[string]interface{})["info"].(map[string]interface{})["length"].(int))
-		fmt.Printf("Info Hash: %x", sum)
+		fmt.Printf("Info Hash: %x\n", sum)
+		fmt.Printf("Piece Length: %d\n", infoMap["piece length"])
+		fmt.Printf("Piece Hashes:\n")
+		b := bytes.NewBuffer([]byte(infoMap["pieces"].(string)))
+		for b.Len() != 0 {
+			hash := make([]byte, 20)
+			_, err := b.Read(hash)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			fmt.Printf("%x\n", hash)
+		}
 	} else {
 		fmt.Println("Unknown command: " + command)
 		os.Exit(1)
