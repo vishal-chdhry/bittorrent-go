@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -187,6 +188,9 @@ func main() {
 		fmt.Println(string(jsonOutput))
 	} else {
 		fileName := os.Args[2]
+		if command == "download_piece" {
+			fileName = os.Args[4]
+		}
 
 		f, err := os.Open(fileName)
 		if err != nil {
@@ -228,6 +232,7 @@ func main() {
 			}
 			pieces = append(pieces, hex.EncodeToString(hash))
 		}
+
 		barray := make([]byte, 10)
 		rand.Read(barray)
 		peerId := hex.EncodeToString(barray)
@@ -241,7 +246,7 @@ func main() {
 			for _, v := range pieces {
 				fmt.Println(v)
 			}
-		} else if command == "peers" || command == "handshake" {
+		} else if command == "peers" || command == "handshake" || command == "download_piece" {
 			val := url.Values{}
 			val.Add("peer_id", peerId)
 			val.Add("port", "6881")
@@ -271,7 +276,7 @@ func main() {
 					fmt.Println(v)
 				}
 			} else {
-				peerAddress := os.Args[3]
+				peerAddress := peeripv4s[0]
 				conn, err := net.Dial("tcp", peerAddress)
 				if err != nil {
 					fmt.Println(err)
@@ -286,16 +291,93 @@ func main() {
 				handshake = append(handshake, sum...)
 				handshake = append(handshake, []byte(peerId)...)
 				_, err = conn.Write([]byte(handshake))
-				buffer := make([]byte, 1+19+8+20+20)
+				handshakebuffer := make([]byte, 1+19+8+20+20)
 
-				_, err = conn.Read(buffer)
+				_, err = conn.Read(handshakebuffer)
 				if err != nil {
 					fmt.Println("Error:", err)
 					return
 				}
+				if command == "handshake" {
+					recieverPeerId := handshakebuffer[1+19+8+20:]
+					fmt.Printf("Peer ID: %x\n", recieverPeerId)
+				} else {
+					// all peers have all package so ignore
+					_, _, err := getMessageInfo(conn)
+					if err != nil {
+						fmt.Println("Error:", err)
+						return
+					}
+					_, err = conn.Read(make([]byte, 1))
+					if _, err = conn.Write(createMessage(2, nil)); err != nil {
+						fmt.Println("Error:", err)
+						return
+					}
 
-				recieverPeerId := buffer[1+19+8+20:]
-				fmt.Printf("Peer ID: %x\n", recieverPeerId)
+					// unchoke message
+					if length, msgType, err := getMessageInfo(conn); err != nil {
+						fmt.Println("Error:", err)
+						return
+					} else if msgType != 1 || length != 0 {
+						fmt.Println("wrong message, should have been unchoke")
+					}
+					fileData := make([]byte, 0)
+					// make piece requests
+					// for i := range pieces {
+					i, _ := strconv.ParseInt(os.Args[5], 10, 32)
+					blockSize := int(math.Pow(2, 14))
+					numBlocks := int(math.Ceil(float64(pieceLength) / float64(blockSize)))
+					for j := 0; j < numBlocks; j++ {
+						blockLength, eof := calculateBlockLength(length, pieceLength, blockSize, int(i), j)
+						if _, err = conn.Write(createMessage(6, createRequestPayload(int(i), j*blockSize, blockLength))); err != nil {
+							fmt.Println("Error:", err)
+							return
+						}
+
+						length, msgType, err := getMessageInfo(conn)
+						if err != nil {
+							fmt.Println("Error:", err)
+							return
+						} else if msgType != 7 {
+							fmt.Println("expected a piece msg")
+							return
+						}
+						fmt.Println(length, msgType)
+						_, err = conn.Read(make([]byte, 8))
+						bytesRead := uint32(8)
+						msg := make([]byte, length)
+						for bytesRead != length {
+							n, err := conn.Read(msg)
+							if err != nil {
+								fmt.Println("Error:", err)
+								return
+							}
+							bytesRead += uint32(n)
+							fileData = append(fileData, msg[:n]...)
+						}
+						if eof {
+							break
+						}
+						fmt.Println(bytesRead)
+					}
+					shaval := sha1.Sum(fileData)
+					fmt.Printf("%x\n", shaval)
+					fmt.Println(pieces[i])
+					outputFileName := os.Args[3]
+					fo, err := os.Create(outputFileName)
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					_, err = fo.Write(fileData)
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					fo.Close()
+				}
+				// }
+
 			}
 		} else {
 			fmt.Println("Unknown command: " + command)
@@ -310,4 +392,52 @@ func parsePeerIPV4s(ips []byte) []string {
 		ipAddrs = append(ipAddrs, fmt.Sprintf("%d.%d.%d.%d:%d", ips[i], ips[i+1], ips[i+2], ips[i+3], binary.BigEndian.Uint16(ips[i+4:i+6])))
 	}
 	return ipAddrs
+}
+
+func getMessageInfo(connection net.Conn) (uint32, byte, error) {
+	messageTypeBuffer := make([]byte, 5)
+	_, err := connection.Read(messageTypeBuffer)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return 0, 0, err
+	}
+	length := binary.BigEndian.Uint32(messageTypeBuffer[:4])
+	messageType := messageTypeBuffer[4]
+	return length - 1, messageType, nil
+}
+
+func createMessage(msgType byte, msg []byte) []byte {
+	var length uint32 = uint32(len(msg)) + 1
+
+	payload := make([]byte, 0, 4+1+len(msg))
+	payload = binary.BigEndian.AppendUint32(payload, uint32(length))
+	payload = append(payload, msgType)
+	payload = append(payload, msg...)
+	return payload
+}
+
+func createRequestPayload(pieceIndex, blockOffset, length int) []byte {
+	payload := make([]byte, 0, 12)
+	payload = binary.BigEndian.AppendUint32(payload, uint32(pieceIndex))
+	payload = binary.BigEndian.AppendUint32(payload, uint32(blockOffset))
+	payload = binary.BigEndian.AppendUint32(payload, uint32(length))
+	return payload
+}
+
+func calculateBlockLength(totalLength, pieceLength, maxBlockLength, pieceIndex, blockIndex int) (int, bool) {
+	numPieces := int(math.Ceil(float64(totalLength) / float64(pieceLength)))
+	numBlocks := int(math.Ceil(float64(pieceLength) / float64(maxBlockLength)))
+	if pieceIndex >= numPieces || blockIndex >= numBlocks {
+		return 0, true
+	}
+
+	lastPieceLength := pieceLength - (numPieces*pieceLength - totalLength)
+	if pieceIndex == numPieces-1 {
+		numBlocks := int(math.Ceil(float64(lastPieceLength) / float64(maxBlockLength)))
+		if blockIndex == numBlocks-1 {
+			lastBlockLength := lastPieceLength - maxBlockLength*(numBlocks-1)
+			return lastBlockLength, true
+		}
+	}
+	return maxBlockLength, false
 }
