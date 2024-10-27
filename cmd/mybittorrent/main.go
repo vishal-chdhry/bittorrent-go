@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 )
@@ -130,30 +131,40 @@ func main() {
 			return
 		}
 		clientId := genPeerId()
-		conn, _, err := connectWithPeer(peerUrls[0], clientId, torrentInfo)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer conn.Close()
-
-		if err := initiateRcvRequest(conn); err != nil {
-			fmt.Println("Error:", err)
-			return
-		}
-		fileData := make([]byte, 0)
-		fileMap := make(map[int][]byte)
-		for i := range torrentInfo.PieceHashes {
-			pieceData, err := downloadPiece(conn, torrentInfo.PieceLength, i, torrentInfo.FileLength)
+		connMap := make([]net.Conn, 0, len(peerUrls))
+		for _, peer := range peerUrls {
+			conn, _, err := connectWithPeer(peer, clientId, torrentInfo)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			fileMap[i] = pieceData
+			defer conn.Close()
+
+			if err := initiateRcvRequest(conn); err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			connMap = append(connMap, conn)
 		}
+
+		fileData := make([]byte, 0)
+		fileMap := make(map[int][]byte)
+		wq := createWorkQueue(torrentInfo)
+		workers := createWorkers(torrentInfo, connMap, fileMap)
+		wPool := newWorkerPool(wq, workers...)
+		wPool.start()
+		// for i := range torrentInfo.PieceHashes {
+		// 	pieceData, err := downloadPiece(conn, torrentInfo.PieceLength, i, torrentInfo.FileLength)
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 		return
+		// 	}
+		// 	fileMap[i] = pieceData
+		// }
 		for i := range torrentInfo.PieceHashes {
 			fileData = append(fileData, fileMap[i]...)
 		}
+		fmt.Println(len(fileData))
 		err = writeToDisk(os.Args[3], fileData)
 		if err != nil {
 			fmt.Println(err)

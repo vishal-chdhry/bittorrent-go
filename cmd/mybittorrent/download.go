@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"time"
 )
 
-func downloadPiece(conn net.Conn, pieceLength, pieceIdx, fileLength int) ([]byte, error) {
+func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]byte, error) {
 	pieceData := make([]byte, 0)
 	blockSize := int(math.Pow(2, 14))
-	numBlocks := int(math.Ceil(float64(pieceLength) / float64(blockSize)))
+	numBlocks := int(math.Ceil(float64(maxPieceLength) / float64(blockSize)))
 
 	for blockIdx := 0; blockIdx < numBlocks; blockIdx++ {
-		blockLength, eof := calculateBlockLength(fileLength, pieceLength, blockSize, pieceIdx, blockIdx)
+		blockLength, eof := calculateBlockLength(fileLength, maxPieceLength, blockSize, pieceIdx, blockIdx)
 		if _, err := conn.Write(buildMessage(6, buildDownloadRequest(pieceIdx, blockIdx*blockSize, blockLength))); err != nil {
 			fmt.Println("Error:", err)
 			return nil, err
@@ -63,4 +64,36 @@ func calculateBlockLength(totalLength, pieceLength, maxBlockLength, pieceIndex, 
 		}
 	}
 	return maxBlockLength, false
+}
+
+func createWorkQueue(torrentInfo *torrentInfo) *workqueue {
+	wq := &workqueue{
+		queue: make(chan int, len(torrentInfo.PieceHashes)),
+	}
+	for i := range torrentInfo.PieceHashes {
+		fmt.Println("added work item", i)
+		wq.addItem(i)
+	}
+	return wq
+}
+
+func createWorkers(torrentInfo *torrentInfo, peerConnections []net.Conn, fileMap map[int][]byte) []*worker {
+	workers := make([]*worker, 0, len(peerConnections))
+	for _, conn := range peerConnections {
+		workers = append(workers, &worker{
+			run: func(pieceIdx int) error {
+				fmt.Println("fetching for index ", pieceIdx)
+				time.Sleep(3 * time.Second)
+				pieceValue, err := downloadPiece(conn, torrentInfo.PieceLength, pieceIdx, torrentInfo.FileLength)
+				if err != nil {
+					return err
+				}
+				fileMap[pieceIdx] = pieceValue
+				fmt.Println("appended piece to map", pieceIdx)
+				return nil
+			},
+		},
+		)
+	}
+	return workers
 }
