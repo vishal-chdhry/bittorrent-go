@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -165,8 +166,8 @@ func (b *bencoder) encode(val interface{}) error {
 }
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("invalid arguments provided, there should be three arguments")
+	if len(os.Args) < 3 {
+		fmt.Println("invalid arguments provided, there should be atleast three arguments")
 		return
 	}
 	command := os.Args[1]
@@ -184,7 +185,7 @@ func main() {
 
 		jsonOutput, _ := json.Marshal(decoded)
 		fmt.Println(string(jsonOutput))
-	} else if command == "info" || command == "peers" {
+	} else {
 		fileName := os.Args[2]
 
 		f, err := os.Open(fileName)
@@ -227,6 +228,9 @@ func main() {
 			}
 			pieces = append(pieces, hex.EncodeToString(hash))
 		}
+		barray := make([]byte, 10)
+		rand.Read(barray)
+		peerId := hex.EncodeToString(barray)
 
 		if command == "info" {
 			fmt.Println("Tracker URL:", trackerUrl)
@@ -237,10 +241,7 @@ func main() {
 			for _, v := range pieces {
 				fmt.Println(v)
 			}
-		} else if command == "peers" {
-			b := make([]byte, 10)
-			rand.Read(b)
-			peerId := hex.EncodeToString(b)
+		} else if command == "peers" || command == "handshake" {
 			val := url.Values{}
 			val.Add("peer_id", peerId)
 			val.Add("port", "6881")
@@ -265,14 +266,41 @@ func main() {
 
 			peers := decoded.(map[string]interface{})["peers"].(string)
 			peeripv4s := parsePeerIPV4s([]byte(peers))
-			for _, v := range peeripv4s {
-				fmt.Println(v)
-			}
-		}
+			if command == "peers" {
+				for _, v := range peeripv4s {
+					fmt.Println(v)
+				}
+			} else {
+				peerAddress := os.Args[3]
+				conn, err := net.Dial("tcp", peerAddress)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				defer conn.Close()
+				pstrlen := byte(19) // The length of the string "BitTorrent protocol"
+				pstr := []byte("BitTorrent protocol")
+				reserved := make([]byte, 8) // Eight zeros
+				handshake := append([]byte{pstrlen}, pstr...)
+				handshake = append(handshake, reserved...)
+				handshake = append(handshake, sum...)
+				handshake = append(handshake, []byte(peerId)...)
+				_, err = conn.Write([]byte(handshake))
+				buffer := make([]byte, 1+19+8+20+20)
 
-	} else {
-		fmt.Println("Unknown command: " + command)
-		os.Exit(1)
+				_, err = conn.Read(buffer)
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+
+				recieverPeerId := buffer[1+19+8+20:]
+				fmt.Printf("Peer ID: %x\n", recieverPeerId)
+			}
+		} else {
+			fmt.Println("Unknown command: " + command)
+			os.Exit(1)
+		}
 	}
 }
 
