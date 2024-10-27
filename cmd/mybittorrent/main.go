@@ -188,7 +188,7 @@ func main() {
 		fmt.Println(string(jsonOutput))
 	} else {
 		fileName := os.Args[2]
-		if command == "download_piece" {
+		if command == "download_piece" || command == "download" {
 			fileName = os.Args[4]
 		}
 
@@ -246,7 +246,7 @@ func main() {
 			for _, v := range pieces {
 				fmt.Println(v)
 			}
-		} else if command == "peers" || command == "handshake" || command == "download_piece" {
+		} else if command == "peers" || command == "handshake" || command == "download_piece" || command == "download" {
 			val := url.Values{}
 			val.Add("peer_id", peerId)
 			val.Add("port", "6881")
@@ -303,66 +303,48 @@ func main() {
 					fmt.Printf("Peer ID: %x\n", recieverPeerId)
 				} else {
 					// all peers have all package so ignore
-					_, _, err := getMessageInfo(conn)
+					msglength, msgType, err := getMessageInfo(conn)
 					if err != nil {
 						fmt.Println("Error:", err)
 						return
 					}
-					_, err = conn.Read(make([]byte, 1))
+					fmt.Println("peer request", msgType, msglength)
+					_, err = conn.Read(make([]byte, msglength))
 					if _, err = conn.Write(createMessage(2, nil)); err != nil {
 						fmt.Println("Error:", err)
 						return
 					}
 
 					// unchoke message
-					if length, msgType, err := getMessageInfo(conn); err != nil {
+					if msgLen, msgType, err := getMessageInfo(conn); err != nil {
 						fmt.Println("Error:", err)
 						return
-					} else if msgType != 1 || length != 0 {
-						fmt.Println("wrong message, should have been unchoke")
+					} else if msgType != 1 || msgLen != 0 {
+						fmt.Println(msgType, msgLen)
+						fmt.Println("wrong message, should have been unchoked")
 					}
 					fileData := make([]byte, 0)
-					// make piece requests
-					// for i := range pieces {
-					i, _ := strconv.ParseInt(os.Args[5], 10, 32)
-					blockSize := int(math.Pow(2, 14))
-					numBlocks := int(math.Ceil(float64(pieceLength) / float64(blockSize)))
-					for j := 0; j < numBlocks; j++ {
-						blockLength, eof := calculateBlockLength(length, pieceLength, blockSize, int(i), j)
-						if _, err = conn.Write(createMessage(6, createRequestPayload(int(i), j*blockSize, blockLength))); err != nil {
-							fmt.Println("Error:", err)
-							return
-						}
-
-						length, msgType, err := getMessageInfo(conn)
+					fileMap := make(map[int][]byte)
+					if command == "download_piece" {
+						index, _ := strconv.ParseInt(os.Args[5], 10, 32)
+						i := int(index)
+						fileData, err = downloadPiece(pieceLength, i, length, conn)
 						if err != nil {
-							fmt.Println("Error:", err)
-							return
-						} else if msgType != 7 {
-							fmt.Println("expected a piece msg")
 							return
 						}
-						fmt.Println(length, msgType)
-						_, err = conn.Read(make([]byte, 8))
-						bytesRead := uint32(8)
-						msg := make([]byte, length)
-						for bytesRead != length {
-							n, err := conn.Read(msg)
+					} else {
+						// make piece requests
+						for i := range pieces {
+							pieceData, err := downloadPiece(pieceLength, i, length, conn)
 							if err != nil {
-								fmt.Println("Error:", err)
 								return
 							}
-							bytesRead += uint32(n)
-							fileData = append(fileData, msg[:n]...)
+							fileMap[i] = pieceData
 						}
-						if eof {
-							break
+						for i := range pieces {
+							fileData = append(fileData, fileMap[i]...)
 						}
-						fmt.Println(bytesRead)
 					}
-					shaval := sha1.Sum(fileData)
-					fmt.Printf("%x\n", shaval)
-					fmt.Println(pieces[i])
 					outputFileName := os.Args[3]
 					fo, err := os.Create(outputFileName)
 					if err != nil {
@@ -376,8 +358,6 @@ func main() {
 					}
 					fo.Close()
 				}
-				// }
-
 			}
 		} else {
 			fmt.Println("Unknown command: " + command)
@@ -392,6 +372,46 @@ func parsePeerIPV4s(ips []byte) []string {
 		ipAddrs = append(ipAddrs, fmt.Sprintf("%d.%d.%d.%d:%d", ips[i], ips[i+1], ips[i+2], ips[i+3], binary.BigEndian.Uint16(ips[i+4:i+6])))
 	}
 	return ipAddrs
+}
+
+func downloadPiece(pieceLength, i, length int, conn net.Conn) ([]byte, error) {
+	pieceData := make([]byte, 0)
+	blockSize := int(math.Pow(2, 14))
+	numBlocks := int(math.Ceil(float64(pieceLength) / float64(blockSize)))
+	for j := 0; j < numBlocks; j++ {
+		blockLength, eof := calculateBlockLength(length, pieceLength, blockSize, i, j)
+		if _, err := conn.Write(createMessage(6, createRequestPayload(i, j*blockSize, blockLength))); err != nil {
+			fmt.Println("Error:", err)
+			return nil, err
+		}
+
+		length, msgType, err := getMessageInfo(conn)
+		if err != nil {
+			fmt.Println("Error:", err)
+			return nil, err
+		} else if msgType != 7 {
+			fmt.Println("expected a piece msg")
+			return nil, err
+		}
+		fmt.Println(length, msgType)
+		_, err = conn.Read(make([]byte, 8))
+		bytesRead := uint32(8)
+		msg := make([]byte, length)
+		for bytesRead != length {
+			n, err := conn.Read(msg)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return nil, err
+			}
+			bytesRead += uint32(n)
+			pieceData = append(pieceData, msg[:n]...)
+		}
+		if eof {
+			break
+		}
+		fmt.Println(bytesRead)
+	}
+	return pieceData, nil
 }
 
 func getMessageInfo(connection net.Conn) (uint32, byte, error) {
