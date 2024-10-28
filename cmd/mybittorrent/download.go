@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"time"
 )
 
 func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]byte, error) {
@@ -27,7 +26,7 @@ func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]b
 			fmt.Println("expected a piece msg")
 			return nil, err
 		}
-		fmt.Println(length, msgType)
+		// fmt.Println(length, msgType)
 		_, err = conn.Read(make([]byte, 8))
 		bytesRead := uint32(8)
 		msg := make([]byte, length)
@@ -40,7 +39,7 @@ func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]b
 			bytesRead += uint32(n)
 			pieceData = append(pieceData, msg[:n]...)
 		}
-		fmt.Println(bytesRead)
+		// fmt.Println(bytesRead)
 		if eof {
 			break
 		}
@@ -71,7 +70,7 @@ func createWorkQueue(torrentInfo *torrentInfo) *workqueue {
 		queue: make(chan int, len(torrentInfo.PieceHashes)),
 	}
 	for i := range torrentInfo.PieceHashes {
-		fmt.Println("added work item", i)
+		// fmt.Println("added work item", i)
 		wq.addItem(i)
 	}
 	return wq
@@ -82,14 +81,13 @@ func createWorkers(torrentInfo *torrentInfo, peerConnections []net.Conn, fileMap
 	for _, conn := range peerConnections {
 		workers = append(workers, &worker{
 			run: func(pieceIdx int) error {
-				fmt.Println("fetching for index ", pieceIdx)
-				time.Sleep(3 * time.Second)
+				// fmt.Println("fetching for index ", pieceIdx)
 				pieceValue, err := downloadPiece(conn, torrentInfo.PieceLength, pieceIdx, torrentInfo.FileLength)
 				if err != nil {
 					return err
 				}
 				fileMap[pieceIdx] = pieceValue
-				fmt.Println("appended piece to map", pieceIdx)
+				// fmt.Println("appended piece to map", pieceIdx)
 				return nil
 			},
 		},

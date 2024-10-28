@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
@@ -153,18 +154,10 @@ func main() {
 		workers := createWorkers(torrentInfo, connMap, fileMap)
 		wPool := newWorkerPool(wq, workers...)
 		wPool.start()
-		// for i := range torrentInfo.PieceHashes {
-		// 	pieceData, err := downloadPiece(conn, torrentInfo.PieceLength, i, torrentInfo.FileLength)
-		// 	if err != nil {
-		// 		fmt.Println(err)
-		// 		return
-		// 	}
-		// 	fileMap[i] = pieceData
-		// }
 		for i := range torrentInfo.PieceHashes {
 			fileData = append(fileData, fileMap[i]...)
 		}
-		fmt.Println(len(fileData))
+		// fmt.Println(len(fileData))
 		err = writeToDisk(os.Args[3], fileData)
 		if err != nil {
 			fmt.Println(err)
@@ -172,6 +165,21 @@ func main() {
 		}
 
 		return
+	case "magnet_parse":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: ./your_bittorrent.sh magnet_parse <magnet-link>")
+			os.Exit(1)
+		}
+
+		magnetLink := os.Args[2]
+		mag, err := parseMagentFromString(magnetLink)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("Tracker URL:", mag["tr"])
+		fmt.Println("Info Hash:", strings.TrimPrefix(mag["xt"], "urn:btih:"))
 	default:
 		fmt.Println("unsupported command", command)
 		return
