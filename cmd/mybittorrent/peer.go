@@ -15,7 +15,6 @@ func fetchPeersFromTorrentUrl(requestUrl string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	peers := decoded.(map[string]interface{})["peers"].(string)
 	return parsePeerIPV4s([]byte(peers)), nil
 }

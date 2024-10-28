@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"strings"
 )
 
 // Ensures gofmt doesn't remove the "os" encoding/json import (feel free to remove this!)
@@ -52,7 +51,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		u := getRequestUrlFromTorrentInfo(torrentInfo)
+		u := getRequestUrlFromTorrentInfo(torrentInfo.TrackerURL, torrentInfo.InfoHash, torrentInfo.FileLength)
 		peerUrls, err := fetchPeersFromTorrentUrl(u)
 		if err != nil {
 			fmt.Println(err)
@@ -68,13 +67,13 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		u := getRequestUrlFromTorrentInfo(torrentInfo)
+		u := getRequestUrlFromTorrentInfo(torrentInfo.TrackerURL, torrentInfo.InfoHash, torrentInfo.FileLength)
 		_, err = fetchPeersFromTorrentUrl(u)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		conn, peerId, err := connectWithPeer(os.Args[3], genPeerId(), torrentInfo)
+		conn, peerId, err := connectWithPeer(os.Args[3], genPeerId(), torrentInfo.InfoHash, nil)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -88,14 +87,14 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		u := getRequestUrlFromTorrentInfo(torrentInfo)
+		u := getRequestUrlFromTorrentInfo(torrentInfo.TrackerURL, torrentInfo.InfoHash, torrentInfo.FileLength)
 		peerUrls, err := fetchPeersFromTorrentUrl(u)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 		clientId := genPeerId()
-		conn, _, err := connectWithPeer(peerUrls[0], clientId, torrentInfo)
+		conn, _, err := connectWithPeer(peerUrls[0], clientId, torrentInfo.InfoHash, nil)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -125,7 +124,7 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		u := getRequestUrlFromTorrentInfo(torrentInfo)
+		u := getRequestUrlFromTorrentInfo(torrentInfo.TrackerURL, torrentInfo.InfoHash, torrentInfo.FileLength)
 		peerUrls, err := fetchPeersFromTorrentUrl(u)
 		if err != nil {
 			fmt.Println(err)
@@ -134,7 +133,7 @@ func main() {
 		clientId := genPeerId()
 		connMap := make([]net.Conn, 0, len(peerUrls))
 		for _, peer := range peerUrls {
-			conn, _, err := connectWithPeer(peer, clientId, torrentInfo)
+			conn, _, err := connectWithPeer(peer, clientId, torrentInfo.InfoHash, nil)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -179,7 +178,36 @@ func main() {
 		}
 
 		fmt.Println("Tracker URL:", mag["tr"])
-		fmt.Println("Info Hash:", strings.TrimPrefix(mag["xt"], "urn:btih:"))
+		fmt.Printf("Info Hash: %x\n", mag["xt"])
+		return
+	case "magnet_handshake":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: ./your_bittorrent.sh magnet_parse <magnet-link>")
+			os.Exit(1)
+		}
+
+		magnetLink := os.Args[2]
+		mag, err := parseMagentFromString(magnetLink)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		infoHash := mag["xt"]
+		u := getRequestUrlFromTorrentInfo(mag["tr"], []byte(infoHash), -1)
+		peerUrls, err := fetchPeersFromTorrentUrl(u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		clientId := genPeerId()
+		conn, peerId, err := connectWithPeer(peerUrls[0], clientId, []byte(infoHash), enableMagnetExtension())
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer conn.Close()
+		fmt.Printf("Peer ID: %x\n", peerId)
+		return
 	default:
 		fmt.Println("unsupported command", command)
 		return

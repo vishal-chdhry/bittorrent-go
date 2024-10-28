@@ -6,17 +6,22 @@ import (
 	"net/url"
 )
 
-func getRequestUrlFromTorrentInfo(tInfo *torrentInfo) string {
+func getRequestUrlFromTorrentInfo(trackerUrl string, infoHash []byte, fileLength int) string {
+	if fileLength == -1 {
+		fileLength = 999
+	}
+
 	peerId := genPeerId()
 	val := url.Values{}
 	val.Add("peer_id", peerId)
 	val.Add("port", "6881")
 	val.Add("uploaded", "0")
 	val.Add("downloaded", "0")
-	val.Add("left", fmt.Sprint(tInfo.FileLength))
+	val.Add("left", fmt.Sprint(fileLength))
 	val.Add("compact", "1")
+	val.Add("info_hash", string(infoHash))
 
-	return tInfo.TrackerURL + "?" + val.Encode() + "&info_hash=" + url.QueryEscape(string(tInfo.InfoHash))
+	return trackerUrl + "?" + val.Encode()
 }
 
 func parsePeerIPV4s(ips []byte) []string {
