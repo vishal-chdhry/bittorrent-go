@@ -206,11 +206,13 @@ func main() {
 			return
 		}
 		fmt.Printf("Peer ID: %x\n", peerId)
-		_, err = getMagnetExtensionPayload(conn)
+		decoded, err := getMagnetExtensionPayload(conn)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
+		fmt.Printf("Peer Metadata Extension ID: %d\n", metadataExtId)
 		return
 	default:
 		fmt.Println("unsupported command", command)
