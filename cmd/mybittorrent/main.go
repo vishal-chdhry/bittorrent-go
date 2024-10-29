@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -213,6 +214,44 @@ func main() {
 		}
 		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
 		fmt.Printf("Peer Metadata Extension ID: %d\n", metadataExtId)
+		return
+	case "magnet_info":
+		if len(os.Args) != 3 {
+			fmt.Println("usage: ./your_bittorrent.sh magnet_parse <magnet-link>")
+			os.Exit(1)
+		}
+
+		magnetLink := os.Args[2]
+		mag, err := parseMagentFromString(magnetLink)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		infoHash := mag["xt"]
+		u := getRequestUrlFromTorrentInfo(mag["tr"], []byte(infoHash), -1)
+		peerUrls, err := fetchPeersFromTorrentUrl(u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		clientId := genPeerId()
+		conn, peerId, err := connectWithPeer(peerUrls[0], clientId, []byte(infoHash), enableMagnetExtension())
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Printf("Peer ID: %x\n", peerId)
+		decoded, err := getMagnetExtensionPayload(conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
+		fmt.Printf("Peer Metadata Extension ID: %d\n", metadataExtId)
+		metaExtIdByteArr := make([]byte, 4)
+		binary.LittleEndian.PutUint32(metaExtIdByteArr, uint32(metadataExtId))
+		decoded, err = getMagnetRequestMetadata(conn, metaExtIdByteArr[3])
+		fmt.Println(decoded)
 		return
 	default:
 		fmt.Println("unsupported command", command)

@@ -170,6 +170,6 @@ func (b *bencoder) encode(val interface{}) error {
 		b.WriteByte('e')
 		return nil
 	default:
-		return fmt.Errorf("unsupported type in encoder")
+		return fmt.Errorf("unsupported type in encoder: %T", v)
 	}
 }
