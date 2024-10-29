@@ -51,7 +51,7 @@ func (b *bdecoder) decode() (interface{}, error) {
 	case first == 'd':
 		return b.decodeDict()
 	default:
-		return nil, fmt.Errorf("unsupported type in string or invalid format")
+		return nil, fmt.Errorf("unsupported type in string or invalid format %v", c)
 	}
 }
 

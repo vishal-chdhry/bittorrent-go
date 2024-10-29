@@ -205,8 +205,12 @@ func main() {
 			fmt.Println(err)
 			return
 		}
-		defer conn.Close()
 		fmt.Printf("Peer ID: %x\n", peerId)
+		_, err = getMagnetExtensionPayload(conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 		return
 	default:
 		fmt.Println("unsupported command", command)

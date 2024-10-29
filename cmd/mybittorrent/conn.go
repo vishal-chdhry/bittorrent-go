@@ -29,6 +29,14 @@ func connectWithPeer(peerAddress string, clientId string, infoHash []byte, exten
 		return nil, nil, err
 	}
 
+	if len(extension) != 0 {
+		retExtension := handshakebuffer[1+19:][:8]
+		ok := checkExtSupport(extension, retExtension)
+		if !ok {
+			return conn, nil, fmt.Errorf("extension not supported %v, received %v", extension, retExtension)
+		}
+	}
+
 	return conn, handshakebuffer[1+19+8+20:], nil
 }
 
@@ -67,4 +75,18 @@ func enableMagnetExtension() []byte {
 	a := make([]byte, 8)
 	a[5] = 16
 	return a
+}
+
+func checkExtSupport(sent, rcv []byte) bool {
+	if len(sent) != len(rcv) {
+		return false
+	}
+
+	for i := range sent {
+		check := sent[i] & rcv[i]
+		if check != sent[i] {
+			return false
+		}
+	}
+	return true
 }
