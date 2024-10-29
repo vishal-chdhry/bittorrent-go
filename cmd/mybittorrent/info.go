@@ -9,6 +9,7 @@ import (
 
 type torrentInfo struct {
 	TrackerURL  string
+	Name        string
 	FileLength  int
 	InfoHash    []byte
 	PieceLength int
@@ -16,7 +17,10 @@ type torrentInfo struct {
 }
 
 func getTorrentInfo(decoded interface{}) (*torrentInfo, error) {
-	infoMap := decoded.(map[string]interface{})["info"].(map[string]interface{})
+	infoMap, ok := decoded.(map[string]interface{})["info"].(map[string]interface{})
+	if !ok {
+		infoMap = decoded.(map[string]interface{})
+	}
 	buf := bytes.Buffer{}
 	be := bencoder{&buf}
 	err := be.encode(infoMap)
@@ -28,7 +32,15 @@ func getTorrentInfo(decoded interface{}) (*torrentInfo, error) {
 
 	sum := h.Sum(nil)
 
-	trackerUrl := decoded.(map[string]interface{})["announce"].(string)
+	trackerUrl, ok := decoded.(map[string]interface{})["announce"].(string)
+	if !ok {
+		trackerUrl = "~"
+	}
+	name, ok := infoMap["name"].(string)
+	if !ok {
+		name = "~"
+	}
+
 	length := infoMap["length"].(int)
 	pieceLength := infoMap["piece length"].(int)
 	pieces := make([]string, 0)
@@ -44,6 +56,7 @@ func getTorrentInfo(decoded interface{}) (*torrentInfo, error) {
 
 	return &torrentInfo{
 		TrackerURL:  trackerUrl,
+		Name:        name,
 		FileLength:  length,
 		InfoHash:    sum,
 		PieceLength: pieceLength,

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"net"
@@ -68,11 +69,10 @@ func buildExtensionHandshakeMessage() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func getMagnetRequestMetadata(conn net.Conn, extId byte) (interface{}, error) {
+func getMagnetRequestMetadata(conn net.Conn, extId byte) (*torrentInfo, error) {
 	reqBytes := []byte{extId}
 	p, err := buildMagnetRequestPayload()
 	if err != nil {
-		fmt.Println("youJHK")
 		return nil, err
 	}
 	reqBytes = append(reqBytes, p...)
@@ -82,7 +82,6 @@ func getMagnetRequestMetadata(conn net.Conn, extId byte) (interface{}, error) {
 		return nil, err
 	}
 
-	fmt.Println("why nil")
 	// receive extension request response
 	msglength, msgType, err := receiveMsgInfo(conn)
 	if err != nil {
@@ -91,20 +90,29 @@ func getMagnetRequestMetadata(conn net.Conn, extId byte) (interface{}, error) {
 		return nil, fmt.Errorf("expected msg type: extension, received %d", msgType)
 	}
 
-	fmt.Println(msglength)
-
 	msg := make([]byte, msglength)
 	_, err = conn.Read(msg)
 	if err != nil {
 		return nil, err
 	}
 	payloadMap := msg[1:] // first byte is the extension message id
-	decoded, err := decodeFromBytes(payloadMap)
+	buf := bytes.NewBuffer(payloadMap)
+	bd := bdecoder{bufio.NewReader(buf)}
+	_, err = bd.decode()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(decoded)
-	return decoded, nil
+
+	metadataContent, err := bd.decode()
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := getTorrentInfo(metadataContent)
+	if err != nil {
+		return nil, err
+	}
+	return t, nil
 }
 
 func buildMagnetRequestPayload() ([]byte, error) {
