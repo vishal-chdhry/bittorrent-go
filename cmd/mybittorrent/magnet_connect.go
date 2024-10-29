@@ -49,7 +49,7 @@ func getMagnetExtensionPayload(conn net.Conn) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Printf("%+v\n", decoded)
+	fmt.Printf("%+v\n", decoded)
 	return decoded, nil
 }
 
