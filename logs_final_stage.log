@@ -1,0 +1,235 @@
+remote: ------------------------------------------------------------------------        
+remote: 
+remote: 
+remote:      ___            _          ___              __  _                           
+remote:     / __\ ___    __| |  ___   / __\_ __  __ _  / _|| |_  ___  _ __  ___         
+remote:    / /   / _ \  / _` | / _ \ / /  | '__|/ _` || |_ | __|/ _ \| '__|/ __|        
+remote:   / /___| (_) || (_| ||  __// /___| |  | (_| ||  _|| |_|  __/| |   \__         
+remote:   \____/ \___/  \__,_| \___|\____/|_|   \__,_||_|   \__|\___||_|   |___/        
+remote: 
+remote: 
+remote:    Welcome to CodeCrafters! Your commit was received successfully.        
+remote: 
+remote: ------------------------------------------------------------------------        
+remote: 
+remote: ⚡ This is a turbo test run. https://codecrafters.io/turbo        
+remote: 
+remote: Running tests on your code. Logs should appear shortly...        
+remote: 
+remote: [compile] Compilation successful.        
+remote: 
+remote: [tester::#DV7] Running tests for Stage #DV7 (Magnet Links - Download the whole file)        
+remote: [tester::#DV7] Running ./your_bittorrent.sh magnet_download -o /tmp/torrents78824449/magnet1.gif "magnet:?xt=urn:btih:ad42ce8109f54c99613ce38f9b4d87e70f24a165&dn=magnet1.gif&tr=http%3A%2F%2Fbittorrent-test-tracker.codecrafters.io%2Fannounce"        
+remote: [tester::#DV7] ✓ File size is correct.        
+remote: [tester::#DV7] ✓ File SHA-1 is correct.        
+remote: [tester::#DV7] Test passed.        
+remote: 
+remote: [tester::#QV6] Running tests for Stage #QV6 (Magnet Links - Download a piece)        
+remote: [tester::#QV6] Running ./your_bittorrent.sh magnet_download_piece -o /tmp/torrents1777979623/piece-1 "magnet:?xt=urn:btih:ad42ce8109f54c99613ce38f9b4d87e70f24a165&dn=magnet1.gif&tr=http%3A%2F%2Fbittorrent-test-tracker.codecrafters.io%2Fannounce" 1        
+remote: [tester::#QV6] ✓ Piece size is correct.        
+remote: [tester::#QV6] ✓ Piece SHA-1 is correct.        
+remote: [tester::#QV6] Running ./your_bittorrent.sh magnet_download_piece -o /tmp/torrents1777979623/piece-2 "magnet:?xt=urn:btih:ad42ce8109f54c99613ce38f9b4d87e70f24a165&dn=magnet1.gif&tr=http%3A%2F%2Fbittorrent-test-tracker.codecrafters.io%2Fannounce" 2        
+remote: [tester::#QV6] ✓ Piece size is correct.        
+remote: [tester::#QV6] ✓ Piece SHA-1 is correct.        
+remote: [tester::#QV6] Test passed.        
+remote: 
+remote: [tester::#ZH1] Running tests for Stage #ZH1 (Magnet Links - Receive metadata)        
+remote: [tester::#ZH1] Running ./your_bittorrent.sh magnet_info "magnet:?xt=urn:btih:3f994a835e090238873498636b98a3e78d1c34ca&dn=magnet2.gif&tr=http%3A%2F%2F127.0.0.1:45315%2Fannounce"        
+remote: [your_program] Tracker URL: http://127.0.0.1:45315/announce        
+remote: [your_program] Length: 79752        
+remote: [your_program] Info Hash: 3f994a835e090238873498636b98a3e78d1c34ca        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] d78a7f55ddd89fef477bc49d938bc7e4d94094f1        
+remote: [tester::#ZH1] ✓ Tracker URL is correct.        
+remote: [tester::#ZH1] ✓ Length is correct.        
+remote: [tester::#ZH1] ✓ Info Hash is correct.        
+remote: [tester::#ZH1] ✓ Piece Length is correct.        
+remote: [tester::#ZH1] ✓ Piece Hashes are correct.        
+remote: [tester::#ZH1] Test passed.        
+remote: 
+remote: [tester::#NS5] Running tests for Stage #NS5 (Magnet Links - Request metadata)        
+remote: [tester::#NS5] Running ./your_bittorrent.sh magnet_info "magnet:?xt=urn:btih:ad42ce8109f54c99613ce38f9b4d87e70f24a165&dn=magnet1.gif&tr=http%3A%2F%2F127.0.0.1:33635%2Fannounce"        
+remote: [your_program] Tracker URL: http://127.0.0.1:33635/announce        
+remote: [your_program] Length: 636505        
+remote: [your_program] Info Hash: ad42ce8109f54c99613ce38f9b4d87e70f24a165        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] 3b46a96d9bc3716d1b75da91e6d753a793ad1cef        
+remote: [your_program] eda417cb5c1cdbf841125c412da0bec9db8301f3        
+remote: [your_program] 422f45b1052e2d45da3e2a6516e1bb1f1db00733        
+remote: [tester::#NS5] Test passed.        
+remote: 
+remote: [tester::#JK6] Running tests for Stage #JK6 (Magnet Links - Receive extension handshake)        
+remote: [tester::#JK6] Running ./your_bittorrent.sh magnet_handshake "magnet:?xt=urn:btih:ad42ce8109f54c99613ce38f9b4d87e70f24a165&dn=magnet1.gif&tr=http%3A%2F%2F127.0.0.1:38347%2Fannounce"        
+remote: [your_program] Peer ID: 242a1584866c29084d32200d95c31fbedc4fa525        
+remote: [your_program] Peer Metadata Extension ID: 121        
+remote: [tester::#JK6] ✓ Peer ID is correct.        
+remote: [tester::#JK6] ✓ Peer Metadata Extension ID is correct.        
+remote: [tester::#JK6] Test passed.        
+remote: 
+remote: [tester::#XI4] Running tests for Stage #XI4 (Magnet Links - Send extension handshake)        
+remote: [tester::#XI4] Running ./your_bittorrent.sh magnet_handshake "magnet:?xt=urn:btih:3f994a835e090238873498636b98a3e78d1c34ca&dn=magnet2.gif&tr=http%3A%2F%2F127.0.0.1:33751%2Fannounce"        
+remote: [your_program] Peer ID: 96ff50c34a78da7549ff8b76203f52bd69c3faef        
+remote: [your_program] Peer Metadata Extension ID: 140        
+remote: [tester::#XI4] Test passed.        
+remote: 
+remote: [tester::#PK2] Running tests for Stage #PK2 (Magnet Links - Announce extension support)        
+remote: [tester::#PK2] Running ./your_bittorrent.sh magnet_handshake "magnet:?xt=urn:btih:3f994a835e090238873498636b98a3e78d1c34ca&dn=magnet2.gif&tr=http%3A%2F%2F127.0.0.1:34149%2Fannounce"        
+remote: [your_program] Peer ID: 1bee4fd51f7760d3b0166483b51b6ffffd91e4d1        
+remote: [your_program] Peer Metadata Extension ID: 54        
+remote: [tester::#PK2] Test passed.        
+remote: 
+remote: [tester::#HW0] Running tests for Stage #HW0 (Magnet Links - Parse magnet link)        
+remote: [tester::#HW0] Running ./your_bittorrent.sh magnet_parse "magnet:?xt=urn:btih:3f994a835e090238873498636b98a3e78d1c34ca&dn=magnet2.gif&tr=http%3A%2F%2Fbittorrent-test-tracker.codecrafters.io%2Fannounce"        
+remote: [your_program] Tracker URL: http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] Info Hash: 3f994a835e090238873498636b98a3e78d1c34ca        
+remote: [tester::#HW0] ✓ Info Hash is correct.        
+remote: [tester::#HW0] ✓ Tracker URL is correct.        
+remote: [tester::#HW0] Test passed.        
+remote: 
+remote: [tester::#JV8] Running tests for Stage #JV8 (Download the whole file)        
+remote: [tester::#JV8] Running ./your_bittorrent.sh download -o /tmp/torrents3903026516/itsworking.gif /tmp/torrents3903026516/itsworking.gif.torrent        
+remote: [tester::#JV8] Test passed.        
+remote: 
+remote: [tester::#ND2] Running tests for Stage #ND2 (Download a piece)        
+remote: [tester::#ND2] Running ./your_bittorrent.sh download_piece -o /tmp/torrents261662597/piece-2 /tmp/torrents261662597/congratulations.gif.torrent 2        
+remote: [tester::#ND2] Running ./your_bittorrent.sh download_piece -o /tmp/torrents261662597/piece-3 /tmp/torrents261662597/congratulations.gif.torrent 3        
+remote: [tester::#ND2] Test passed.        
+remote: 
+remote: [tester::#CA4] Running tests for Stage #CA4 (Peer handshake)        
+remote: [tester::#CA4] Running ./your_bittorrent.sh handshake /tmp/torrents3533864340/test.torrent 127.0.0.1:41289        
+remote: [your_program] Peer ID: 049298646719bb37132a040166ba069cf0cd926d        
+remote: [tester::#CA4] Test passed.        
+remote: 
+remote: [tester::#FI9] Running tests for Stage #FI9 (Discover peers)        
+remote: [tester::#FI9] Running ./your_bittorrent.sh peers /tmp/torrents3640544243/test.torrent        
+remote: [your_program] 188.119.61.177:6881        
+remote: [your_program] 185.107.13.235:54542        
+remote: [your_program] 88.99.2.101:6881        
+remote: [tester::#FI9] Test passed.        
+remote: 
+remote: [tester::#BF7] Running tests for Stage #BF7 (Piece hashes)        
+remote: [tester::#BF7] Running ./your_bittorrent.sh info /tmp/torrents788150237/test.torrent        
+remote: [your_program] Tracker URL: http://bttracker.debian.org:6969/announce        
+remote: [your_program] Length: 786432        
+remote: [your_program] Info Hash: 793a8717b45169da05c93877b3aead23a7811884        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] cbcafffd4f6996b94b986447e9a21388c50c39d0        
+remote: [your_program] bb9d76b163f4135ef6ba48b17ae9eb0c7ef2e31e        
+remote: [your_program] 70edcac2611a8829ebf467a6849f5d8408d9d8f4        
+remote: [tester::#BF7] Test passed.        
+remote: 
+remote: [tester::#RB2] Running tests for Stage #RB2 (Calculate info hash)        
+remote: [tester::#RB2] Running ./your_bittorrent.sh info /tmp/torrents2352362196/codercat.gif.torrent        
+remote: [your_program] Tracker URL: http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] Length: 2994120        
+remote: [your_program] Info Hash: c77829d2a77d6516f88cd7a3de1a26abcbfab0db        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] 3c34309faebf01e49c0f63c90b7edcc2259b6ad0        
+remote: [your_program] b8519b2ea9bb373ff567f644428156c98a1d00fc        
+remote: [your_program] 9dc81366587536f48c2098a1d79692f2590fd9a6        
+remote: [your_program] 033c61e717f8c0d1e55850680eb451e3543b6203        
+remote: [your_program] 6f54e746ec369f65f32d45f77b1f1c37621fb965        
+remote: [your_program] c656704b78107ed553bd0813f92fef780267c07b        
+remote: [your_program] 7431b8683137d20ff594b1f1bf3f8835165d68fb        
+remote: [your_program] 0432bd8e779608d27782b779c7738062e9b50ab5        
+remote: [your_program] d6bc0409a0f3a9503857669d47fe752d4577ea00        
+remote: [your_program] a86ee6abbc30cddb800a0b62d7a296111166d839        
+remote: [your_program] 783f52b70f0c902d56196bd3ee7f379b5db57e3b        
+remote: [your_program] 3d8db9e34db63b4ba1be27930911aa37b3f997dd        
+remote: [tester::#RB2] Running ./your_bittorrent.sh info /tmp/torrents2352362196/itsworking.gif.torrent        
+remote: [your_program] Tracker URL: http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] Length: 2549700        
+remote: [your_program] Info Hash: 70edcac2611a8829ebf467a6849f5d8408d9d8f4        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] 01cc17bbe60fa5a52f64bd5f5b64d99286d50aa5        
+remote: [your_program] 838f703cf7f6f08d1c497ed390df78f90d5f7566        
+remote: [your_program] 45bf10974b5816491e30628b78a382ca36c4e05f        
+remote: [your_program] 84be4bd855b34bcedc0c6e98f66d3e7c63353d1e        
+remote: [your_program] 86427ac94d6e4f21a6d0d6c8b7ffa4c393c3b131        
+remote: [your_program] 7c70cd5f44d1ac5505cb855d526ceb0f5f1cd5e3        
+remote: [your_program] 3796ab05af1fa874173a0a6c1298625ad47b4fe6        
+remote: [your_program] 272a8ff8fc865b053d974a78681414b38077d7b1        
+remote: [your_program] b07128d3a6018062bfe779db96d3a93c05fb81d4        
+remote: [your_program] 7affc94f0985b985eb888a36ec92652821a21be4        
+remote: [tester::#RB2] Running ./your_bittorrent.sh info /tmp/torrents2352362196/congratulations.gif.torrent        
+remote: [your_program] Tracker URL: http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] Length: 820892        
+remote: [your_program] Info Hash: 1cad4a486798d952614c394eb15e75bec587fd08        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] 3d42a20edb1cf840cd3528d3a9e921db6338a463        
+remote: [your_program] 69f885b3988a52ffb03591985402b6d5285940ab        
+remote: [your_program] 76869e6c9c1f101f94f39de153e468be6a638f4f        
+remote: [your_program] bded68d02de011a2b687f75b5833f46cce8e3e9c        
+remote: [tester::#RB2] Test passed.        
+remote: 
+remote: [tester::#OW9] Running tests for Stage #OW9 (Parse torrent file)        
+remote: [tester::#OW9] Running ./your_bittorrent.sh info /tmp/torrents3868383008/itsworking.gif.torrent        
+remote: [your_program] Tracker URL: http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] Length: 2549700        
+remote: [your_program] Info Hash: 70edcac2611a8829ebf467a6849f5d8408d9d8f4        
+remote: [your_program] Piece Length: 262144        
+remote: [your_program] Piece Hashes:        
+remote: [your_program] 01cc17bbe60fa5a52f64bd5f5b64d99286d50aa5        
+remote: [your_program] 838f703cf7f6f08d1c497ed390df78f90d5f7566        
+remote: [your_program] 45bf10974b5816491e30628b78a382ca36c4e05f        
+remote: [your_program] 84be4bd855b34bcedc0c6e98f66d3e7c63353d1e        
+remote: [your_program] 86427ac94d6e4f21a6d0d6c8b7ffa4c393c3b131        
+remote: [your_program] 7c70cd5f44d1ac5505cb855d526ceb0f5f1cd5e3        
+remote: [your_program] 3796ab05af1fa874173a0a6c1298625ad47b4fe6        
+remote: [your_program] 272a8ff8fc865b053d974a78681414b38077d7b1        
+remote: [your_program] b07128d3a6018062bfe779db96d3a93c05fb81d4        
+remote: [your_program] 7affc94f0985b985eb888a36ec92652821a21be4        
+remote: [tester::#OW9] Tracker URL is correct        
+remote: [tester::#OW9] Length is correct        
+remote: [tester::#OW9] Test passed.        
+remote: 
+remote: [tester::#MN6] Running tests for Stage #MN6 (Decode bencoded dictionaries)        
+remote: [tester::#MN6] Running ./your_bittorrent.sh decode de        
+remote: [tester::#MN6] Expected output: {}        
+remote: [your_program] {}        
+remote: [tester::#MN6] Running ./your_bittorrent.sh decode d3:foo6:banana5:helloi52ee        
+remote: [tester::#MN6] Expected output: {"foo":"banana","hello":52}        
+remote: [your_program] {"foo":"banana","hello":52}        
+remote: [tester::#MN6] Running ./your_bittorrent.sh decode d10:inner_dictd4:key16:value14:key2i42e8:list_keyl5:item15:item2i3eeee        
+remote: [tester::#MN6] Expected output: {"inner_dict":{"key1":"value1","key2":42,"list_key":["item1","item2",3]}}        
+remote: [your_program] {"inner_dict":{"key1":"value1","key2":42,"list_key":["item1","item2",3]}}        
+remote: [tester::#MN6] Test passed.        
+remote: 
+remote: [tester::#AH1] Running tests for Stage #AH1 (Decode bencoded lists)        
+remote: [tester::#AH1] Running ./your_bittorrent.sh decode le        
+remote: [tester::#AH1] Expected output: []        
+remote: [your_program] []        
+remote: [tester::#AH1] Running ./your_bittorrent.sh decode l5:mangoi667ee        
+remote: [tester::#AH1] Expected output: ["mango",667]        
+remote: [your_program] ["mango",667]        
+remote: [tester::#AH1] Running ./your_bittorrent.sh decode lli667e5:mangoee        
+remote: [tester::#AH1] Expected output: [[667,"mango"]]        
+remote: [your_program] [[667,"mango"]]        
+remote: [tester::#AH1] Running ./your_bittorrent.sh decode lli4eei5ee        
+remote: [tester::#AH1] Expected output: [[4],5]        
+remote: [your_program] [[4],5]        
+remote: [tester::#AH1] Test passed.        
+remote: 
+remote: [tester::#EB4] Running tests for Stage #EB4 (Decode bencoded integers)        
+remote: [tester::#EB4] Running ./your_bittorrent.sh decode i1358891496e        
+remote: [your_program] 1358891496        
+remote: [tester::#EB4] Running ./your_bittorrent.sh decode i4294967300e        
+remote: [your_program] 4294967300        
+remote: [tester::#EB4] Running ./your_bittorrent.sh decode i-52e        
+remote: [your_program] -52        
+remote: [tester::#EB4] Test passed.        
+remote: 
+remote: [tester::#NS2] Running tests for Stage #NS2 (Decode bencoded strings)        
+remote: [tester::#NS2] Running ./your_bittorrent.sh decode 9:pineapple        
+remote: [your_program] "pineapple"        
+remote: [tester::#NS2] Running ./your_bittorrent.sh decode 55:http://bittorrent-test-tracker.codecrafters.io/announce        
+remote: [your_program] "http://bittorrent-test-tracker.codecrafters.io/announce"        
+remote: [tester::#NS2] Test passed.        
+remote: 
+remote: Test passed. Congrats!        
