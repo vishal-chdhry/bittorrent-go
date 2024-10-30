@@ -321,8 +321,8 @@ func main() {
 		}
 		return
 	case "magnet_download":
-		if len(os.Args) != 6 {
-			fmt.Println("usage: ./your_bittorent.sh magnet_download_piece -o /tmp/test-piece-0 <magnet_link> 0")
+		if len(os.Args) != 5 {
+			fmt.Println("usage: ./your_bittorent.sh magnet_download -o /tmp/sample <magnet-link>")
 			os.Exit(1)
 		}
 
