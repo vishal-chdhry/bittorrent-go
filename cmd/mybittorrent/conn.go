@@ -52,6 +52,10 @@ func initiateRcvRequest(conn net.Conn) error {
 	flushBytesFromConn(conn, msglength)
 
 	// send interest message
+	return sendInterestedMsg(conn)
+}
+
+func sendInterestedMsg(conn net.Conn) error {
 	if _, err := conn.Write(buildMessage(2, nil)); err != nil {
 		return err
 	}

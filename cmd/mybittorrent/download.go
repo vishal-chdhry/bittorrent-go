@@ -13,9 +13,11 @@ func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]b
 
 	for blockIdx := 0; blockIdx < numBlocks; blockIdx++ {
 		blockLength, eof := calculateBlockLength(fileLength, maxPieceLength, blockSize, pieceIdx, blockIdx)
-		if _, err := conn.Write(buildMessage(6, buildDownloadRequest(pieceIdx, blockIdx*blockSize, blockLength))); err != nil {
+		if n, err := conn.Write(buildMessage(6, buildDownloadRequest(pieceIdx, blockIdx*blockSize, blockLength))); err != nil {
 			fmt.Println("Error:", err)
 			return nil, err
+		} else {
+			fmt.Println(n)
 		}
 
 		length, msgType, err := receiveMsgInfo(conn)
@@ -26,7 +28,7 @@ func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]b
 			fmt.Println("expected a piece msg")
 			return nil, err
 		}
-		// fmt.Println(length, msgType)
+		fmt.Println(length, msgType)
 		_, err = conn.Read(make([]byte, 8))
 		bytesRead := uint32(8)
 		msg := make([]byte, length)
@@ -39,7 +41,7 @@ func downloadPiece(conn net.Conn, maxPieceLength, pieceIdx, fileLength int) ([]b
 			bytesRead += uint32(n)
 			pieceData = append(pieceData, msg[:n]...)
 		}
-		// fmt.Println(bytesRead)
+		fmt.Println(bytesRead)
 		if eof {
 			break
 		}

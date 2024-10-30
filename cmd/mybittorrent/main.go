@@ -247,19 +247,136 @@ func main() {
 		}
 		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
 		metaExtIdByteArr := make([]byte, 4)
-		binary.LittleEndian.PutUint32(metaExtIdByteArr, uint32(metadataExtId))
+		binary.BigEndian.PutUint32(metaExtIdByteArr, uint32(metadataExtId))
 		torrentInfo, err := getMagnetRequestMetadata(conn, metaExtIdByteArr[3])
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		fmt.Println("Tracker URL:", mag["tr"])
+		torrentInfo.TrackerURL = mag["tr"]
+		fmt.Println("Tracker URL:", torrentInfo.TrackerURL)
 		fmt.Println("Length:", torrentInfo.FileLength)
 		fmt.Printf("Info Hash: %x\n", torrentInfo.InfoHash)
 		fmt.Printf("Piece Length: %d\n", torrentInfo.PieceLength)
 		fmt.Printf("Piece Hashes:\n")
 		for _, v := range torrentInfo.PieceHashes {
 			fmt.Println(v)
+		}
+		return
+	case "magnet_download_piece":
+		if len(os.Args) != 6 {
+			fmt.Println("usage: ./your_bittorent.sh magnet_download_piece -o /tmp/test-piece-0 <magnet_link> 0")
+			os.Exit(1)
+		}
+
+		magnetLink := os.Args[4]
+		mag, err := parseMagentFromString(magnetLink)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		infoHash := mag["xt"]
+		u := getRequestUrlFromTorrentInfo(mag["tr"], []byte(infoHash), -1)
+		peerUrls, err := fetchPeersFromTorrentUrl(u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		clientId := genPeerId()
+		conn, _, err := connectWithPeer(peerUrls[0], clientId, []byte(infoHash), enableMagnetExtension())
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		decoded, err := getMagnetExtensionPayload(conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
+		metaExtIdByteArr := make([]byte, 4)
+		binary.BigEndian.PutUint32(metaExtIdByteArr, uint32(metadataExtId))
+		torrentInfo, err := getMagnetRequestMetadata(conn, metaExtIdByteArr[3])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		torrentInfo.TrackerURL = mag["tr"]
+		if err := sendInterestedMsg(conn); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		index, _ := strconv.ParseInt(os.Args[5], 10, 32)
+		i := int(index)
+
+		fileData, err := downloadPiece(conn, torrentInfo.PieceLength, i, torrentInfo.FileLength)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		err = writeToDisk(os.Args[3], fileData)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		return
+	case "magnet_download":
+		if len(os.Args) != 6 {
+			fmt.Println("usage: ./your_bittorent.sh magnet_download_piece -o /tmp/test-piece-0 <magnet_link> 0")
+			os.Exit(1)
+		}
+
+		magnetLink := os.Args[4]
+		mag, err := parseMagentFromString(magnetLink)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		infoHash := mag["xt"]
+		u := getRequestUrlFromTorrentInfo(mag["tr"], []byte(infoHash), -1)
+		peerUrls, err := fetchPeersFromTorrentUrl(u)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		clientId := genPeerId()
+		conn, _, err := connectWithPeer(peerUrls[0], clientId, []byte(infoHash), enableMagnetExtension())
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		decoded, err := getMagnetExtensionPayload(conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		metadataExtId := decoded.(map[string]interface{})["m"].(map[string]interface{})["ut_metadata"].(int)
+		metaExtIdByteArr := make([]byte, 4)
+		binary.BigEndian.PutUint32(metaExtIdByteArr, uint32(metadataExtId))
+		torrentInfo, err := getMagnetRequestMetadata(conn, metaExtIdByteArr[3])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		torrentInfo.TrackerURL = mag["tr"]
+		if err := sendInterestedMsg(conn); err != nil {
+			fmt.Println("Error:", err)
+			return
+		}
+		fileData := make([]byte, 0)
+		for i := range torrentInfo.PieceHashes {
+			pieceData, err := downloadPiece(conn, torrentInfo.PieceLength, i, torrentInfo.FileLength)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			fileData = append(fileData, pieceData...)
+		}
+		err = writeToDisk(os.Args[3], fileData)
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
 		return
 	default:
